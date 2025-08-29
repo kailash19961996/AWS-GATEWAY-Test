@@ -1,0 +1,28 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Navigate to frontend directory
+        - cd frontend
+        # Install dependencies
+        - npm ci
+    build:
+      commands:
+        # Build the React application
+        - npm run build
+  artifacts:
+    # Build output directory
+    baseDirectory: frontend/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      # Cache node_modules for faster builds
+      - frontend/node_modules/**/*
+  environment:
+    variables:
+      # Build environment variables
+      NODE_ENV: production
+      # Add your API Gateway URL here after deployment
+      VITE_API_URL:   const [apiUrl, setApiUrl] = useState('  const [apiUrl, setApiUrl] = useState('https://2dkg00hb3h.execute-api.eu-west-2.amazonaws.com/dev')
