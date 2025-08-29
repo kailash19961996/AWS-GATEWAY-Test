@@ -34,7 +34,7 @@ jobs:
 
       - name: Zip Lambda code
         run: |
-          cd backend-example
+          cd backend
           zip -r ../lambda_function.zip .
 
       - name: Configure AWS credentials
