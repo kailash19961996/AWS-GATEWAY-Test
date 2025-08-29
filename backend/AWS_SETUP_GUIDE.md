@@ -108,34 +108,109 @@ This guide will walk you through deploying your React frontend to AWS Amplify an
 
 ### Step 2: Create Resources and Methods
 
-1. **Create proxy resource**:
+1. **Create health resource**:
    - Click "Actions" → "Create Resource"
-   - Check "Configure as proxy resource"
-   - Resource Name: `proxy`
-   - Resource Path: `{proxy+}`
+   - Resource Name: `health`
+   - Resource Path: `/health`
    - Check "Enable API Gateway CORS"
    - Click "Create Resource"
 
-2. **Set up ANY method**:
-   - The ANY method should be automatically created
-   - Click on "ANY"
+2. **Create items resource**:
+   - Click "Actions" → "Create Resource"
+   - Resource Name: `items`
+   - Resource Path: `/items`
+   - Check "Enable API Gateway CORS"
+   - Click "Create Resource"
+
+3. **Create items/{id} resource**:
+   - Select the `/items` resource
+   - Click "Actions" → "Create Resource"
+   - Resource Name: `item-id`
+   - Resource Path: `/{id}`
+   - Check "Enable API Gateway CORS"
+   - Click "Create Resource"
+
+4. **Set up GET method for /health**:
+   - Select the `/health` resource
+   - Click "Actions" → "Create Method"
+   - Select `GET` from dropdown
+   - Click the checkmark
    - Integration type: `Lambda Function`
    - Check "Use Lambda Proxy integration"
    - Lambda Function: `aws-gateway-backend`
    - Click "Save"
    - Click "OK" to give API Gateway permission to invoke Lambda
 
+5. **Set up GET method for /items**:
+   - Select the `/items` resource
+   - Click "Actions" → "Create Method"
+   - Select `GET` from dropdown
+   - Integration type: `Lambda Function`
+   - Check "Use Lambda Proxy integration"
+   - Lambda Function: `aws-gateway-backend`
+   - Click "Save"
+
+6. **Set up POST method for /items**:
+   - Select the `/items` resource
+   - Click "Actions" → "Create Method"
+   - Select `POST` from dropdown
+   - Integration type: `Lambda Function`
+   - Check "Use Lambda Proxy integration"
+   - Lambda Function: `aws-gateway-backend`
+   - Click "Save"
+
+7. **Set up PUT method for /items/{id}**:
+   - Select the `/items/{id}` resource
+   - Click "Actions" → "Create Method"
+   - Select `PUT` from dropdown
+   - Integration type: `Lambda Function`
+   - Check "Use Lambda Proxy integration"
+   - Lambda Function: `aws-gateway-backend`
+   - Click "Save"
+
+8. **Set up DELETE method for /items/{id}**:
+   - Select the `/items/{id}` resource
+   - Click "Actions" → "Create Method"
+   - Select `DELETE` from dropdown
+   - Integration type: `Lambda Function`
+   - Check "Use Lambda Proxy integration"
+   - Lambda Function: `aws-gateway-backend`
+   - Click "Save"
+
+9. **Set up OPTIONS methods for CORS**:
+   - For each resource (`/health`, `/items`, `/items/{id}`):
+     - Select the resource
+     - Click "Actions" → "Create Method"
+     - Select `OPTIONS` from dropdown
+     - Integration type: `Mock`
+     - Click "Save"
+
 ### Step 3: Enable CORS (if not working)
 
-1. **Select your proxy resource**:
-   - Click on `/{proxy+}`
+1. **Enable CORS for each resource**:
+   - For `/health` resource:
+     - Select the `/health` resource
+     - Click "Actions" → "Enable CORS"
+     - Access-Control-Allow-Origin: `*`
+     - Access-Control-Allow-Headers: `Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token`
+     - Access-Control-Allow-Methods: `GET,OPTIONS`
+     - Click "Enable CORS and replace existing CORS headers"
 
-2. **Enable CORS**:
-   - Click "Actions" → "Enable CORS"
-   - Access-Control-Allow-Origin: `*`
-   - Access-Control-Allow-Headers: `Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token`
-   - Access-Control-Allow-Methods: `GET,POST,PUT,DELETE,OPTIONS`
-   - Click "Enable CORS and replace existing CORS headers"
+   - For `/items` resource:
+     - Select the `/items` resource
+     - Click "Actions" → "Enable CORS"
+     - Access-Control-Allow-Origin: `*`
+     - Access-Control-Allow-Headers: `Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token`
+     - Access-Control-Allow-Methods: `GET,POST,OPTIONS`
+     - Click "Enable CORS and replace existing CORS headers"
+
+   - For `/items/{id}` resource:
+     - Select the `/items/{id}` resource
+     - Click "Actions" → "Enable CORS"
+     - Access-Control-Allow-Origin: `*`
+     - Access-Control-Allow-Headers: `Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token`
+     - Access-Control-Allow-Methods: `PUT,DELETE,OPTIONS`
+     - Click "Enable CORS and replace existing CORS headers"
 
 ### Step 4: Deploy API
 
@@ -221,26 +296,53 @@ This guide will walk you through deploying your React frontend to AWS Amplify an
 
 3. **Configure build settings**:
    - App name: `aws-gateway-frontend`
-   - Build and test settings should auto-detect
-   - Verify build commands:
-     ```yaml
-     version: 1
-     frontend:
-       phases:
-         preBuild:
-           commands:
-             - npm ci
-         build:
-           commands:
-             - npm run build
-       artifacts:
-         baseDirectory: dist
-         files:
-           - '**/*'
-       cache:
-         paths:
-           - node_modules/**/*
-     ```
+   - Build and test settings should auto-detect from `amplify.yml`
+   
+   **About amplify.yml file**:
+   The `amplify.yml` file in your project root contains the build configuration for AWS Amplify. It defines:
+   - Build phases (preBuild, build, postBuild)
+   - Artifact location and files to include
+   - Cache configuration
+   - Environment variables
+   
+   Example `amplify.yml` configuration:
+   ```yaml
+   version: 1
+   frontend:
+     phases:
+       preBuild:
+         commands:
+           - npm ci
+       build:
+         commands:
+           - npm run build
+     artifacts:
+       baseDirectory: dist
+       files:
+         - '**/*'
+     cache:
+       paths:
+         - node_modules/**/*
+   backend:
+     phases:
+       preBuild:
+         commands:
+           - cd backend
+           - pip install -r requirements.txt -t .
+       build:
+         commands:
+           - zip -r ../lambda_function.zip .
+   ```
+   
+   **Key sections explained**:
+   - `frontend.phases.preBuild`: Commands run before building (install dependencies)
+   - `frontend.phases.build`: Commands to build the application
+   - `frontend.artifacts.baseDirectory`: Directory containing build output (`dist` for Vite, `build` for Create React App)
+   - `frontend.artifacts.files`: Files to include in deployment
+   - `frontend.cache.paths`: Directories to cache between builds
+   - `backend`: Optional backend build configuration for Lambda deployments
+   
+   - Verify or modify build commands if needed
    - Click "Next"
 
 4. **Review and deploy**:
@@ -259,17 +361,123 @@ This guide will walk you through deploying your React frontend to AWS Amplify an
    ```bash
    curl https://your-api-url.amazonaws.com/dev/health
    ```
+   
+   Expected response:
+   ```json
+   {
+     "statusCode": 200,
+     "message": "Health check successful",
+     "timestamp": "2024-01-01T12:00:00Z"
+   }
+   ```
 
-2. **Create an item**:
+2. **Get all items (empty initially)**:
+   ```bash
+   curl https://your-api-url.amazonaws.com/dev/items
+   ```
+   
+   Expected response:
+   ```json
+   {
+     "statusCode": 200,
+     "data": []
+   }
+   ```
+
+3. **Create an item**:
    ```bash
    curl -X POST https://your-api-url.amazonaws.com/dev/items \
    -H "Content-Type: application/json" \
    -d '{"name":"Test Item","description":"Testing Lambda","category":"test","price":9.99}'
    ```
+   
+   Expected response:
+   ```json
+   {
+     "statusCode": 200,
+     "message": "Item created successfully",
+     "data": {
+       "id": "item-123",
+       "name": "Test Item",
+       "description": "Testing Lambda",
+       "category": "test",
+       "price": 9.99,
+       "created_at": "2024-01-01T12:00:00Z"
+     }
+   }
+   ```
 
-3. **Get all items**:
+4. **Get all items (with data)**:
    ```bash
    curl https://your-api-url.amazonaws.com/dev/items
+   ```
+   
+   Expected response:
+   ```json
+   {
+     "statusCode": 200,
+     "data": [
+       {
+         "id": "item-123",
+         "name": "Test Item",
+         "description": "Testing Lambda",
+         "category": "test",
+         "price": 9.99,
+         "created_at": "2024-01-01T12:00:00Z"
+       }
+     ]
+   }
+   ```
+
+5. **Update an item**:
+   ```bash
+   curl -X PUT https://your-api-url.amazonaws.com/dev/items/item-123 \
+   -H "Content-Type: application/json" \
+   -d '{"name":"Updated Item","description":"Updated description","category":"updated","price":19.99}'
+   ```
+   
+   Expected response:
+   ```json
+   {
+     "statusCode": 200,
+     "message": "Item updated successfully",
+     "data": {
+       "id": "item-123",
+       "name": "Updated Item",
+       "description": "Updated description",
+       "category": "updated",
+       "price": 19.99,
+       "updated_at": "2024-01-01T12:05:00Z"
+     }
+   }
+   ```
+
+6. **Delete an item**:
+   ```bash
+   curl -X DELETE https://your-api-url.amazonaws.com/dev/items/item-123
+   ```
+   
+   Expected response:
+   ```json
+   {
+     "statusCode": 200,
+     "message": "Item deleted successfully"
+   }
+   ```
+
+7. **Test error handling (non-existent item)**:
+   ```bash
+   curl -X PUT https://your-api-url.amazonaws.com/dev/items/non-existent \
+   -H "Content-Type: application/json" \
+   -d '{"name":"Test"}'
+   ```
+   
+   Expected response:
+   ```json
+   {
+     "statusCode": 404,
+     "error": "Item not found"
+   }
    ```
 
 ### Step 2: Test Frontend
@@ -288,6 +496,152 @@ This guide will walk you through deploying your React frontend to AWS Amplify an
    - Update items with PUT
    - Delete items with DELETE
 
+## 🧪 Comprehensive Test Scenarios
+
+### Scenario 1: Complete CRUD Operations
+
+1. **Start with health check**:
+   ```bash
+   curl https://your-api-url.amazonaws.com/dev/health
+   ```
+
+2. **Create multiple items**:
+   ```bash
+   # Item 1
+   curl -X POST https://your-api-url.amazonaws.com/dev/items \
+   -H "Content-Type: application/json" \
+   -d '{"name":"Laptop","description":"Gaming laptop","category":"electronics","price":1299.99}'
+
+   # Item 2
+   curl -X POST https://your-api-url.amazonaws.com/dev/items \
+   -H "Content-Type: application/json" \
+   -d '{"name":"Coffee Mug","description":"Ceramic mug","category":"kitchenware","price":15.99}'
+   ```
+
+3. **Retrieve all items**:
+   ```bash
+   curl https://your-api-url.amazonaws.com/dev/items
+   ```
+
+4. **Update first item** (replace `item-id` with actual ID from response):
+   ```bash
+   curl -X PUT https://your-api-url.amazonaws.com/dev/items/{item-id} \
+   -H "Content-Type: application/json" \
+   -d '{"name":"Gaming Laptop","description":"High-end gaming laptop","category":"electronics","price":1399.99}'
+   ```
+
+5. **Delete second item**:
+   ```bash
+   curl -X DELETE https://your-api-url.amazonaws.com/dev/items/{item-id}
+   ```
+
+6. **Verify final state**:
+   ```bash
+   curl https://your-api-url.amazonaws.com/dev/items
+   ```
+
+### Scenario 2: Error Handling Tests
+
+1. **Test invalid JSON**:
+   ```bash
+   curl -X POST https://your-api-url.amazonaws.com/dev/items \
+   -H "Content-Type: application/json" \
+   -d '{"name":"Invalid JSON"'
+   ```
+   Expected: 400 Bad Request
+
+2. **Test missing required fields**:
+   ```bash
+   curl -X POST https://your-api-url.amazonaws.com/dev/items \
+   -H "Content-Type: application/json" \
+   -d '{}'
+   ```
+   Expected: 400 Bad Request
+
+3. **Test non-existent item update**:
+   ```bash
+   curl -X PUT https://your-api-url.amazonaws.com/dev/items/non-existent-id \
+   -H "Content-Type: application/json" \
+   -d '{"name":"Test"}'
+   ```
+   Expected: 404 Not Found
+
+4. **Test non-existent item deletion**:
+   ```bash
+   curl -X DELETE https://your-api-url.amazonaws.com/dev/items/non-existent-id
+   ```
+   Expected: 404 Not Found
+
+### Scenario 3: Load Testing
+
+1. **Create multiple items rapidly**:
+   ```bash
+   for i in {1..10}; do
+     curl -X POST https://your-api-url.amazonaws.com/dev/items \
+     -H "Content-Type: application/json" \
+     -d "{\"name\":\"Item $i\",\"description\":\"Test item $i\",\"category\":\"test\",\"price\":$((i * 10)).99}" &
+   done
+   wait
+   ```
+
+2. **Verify all items were created**:
+   ```bash
+   curl https://your-api-url.amazonaws.com/dev/items
+   ```
+
+### Scenario 4: Integration Testing with Frontend
+
+1. **Open frontend in browser**
+2. **Update API URL field** with your actual API Gateway URL
+3. **Test health check** - should show green status
+4. **Create items using the form**:
+   - Name: "Frontend Test Item"
+   - Description: "Created via frontend"
+   - Category: "test"
+   - Price: 29.99
+5. **Verify item appears in the items list**
+6. **Edit the item** using the edit functionality
+7. **Delete the item** using the delete button
+8. **Test error scenarios**:
+   - Submit form with empty fields
+   - Try to edit/delete non-existent items
+
+### Scenario 5: CORS Testing
+
+1. **Test from different origins** (if you have multiple domains):
+   ```javascript
+   // Run in browser console from different domain
+   fetch('https://your-api-url.amazonaws.com/dev/health')
+     .then(response => response.json())
+     .then(data => console.log(data))
+     .catch(error => console.error('CORS Error:', error));
+   ```
+
+2. **Test preflight requests**:
+   ```bash
+   curl -X OPTIONS https://your-api-url.amazonaws.com/dev/items \
+   -H "Origin: https://example.com" \
+   -H "Access-Control-Request-Method: POST" \
+   -H "Access-Control-Request-Headers: Content-Type"
+   ```
+
+### Test Results Validation
+
+✅ **Success Indicators**:
+- Health check returns 200 status
+- All CRUD operations work correctly
+- Proper error responses (400, 404, 500) for invalid requests
+- CORS headers present in responses
+- Frontend can communicate with backend
+- Items persist across requests
+
+❌ **Failure Indicators**:
+- 502/503 errors (Lambda/Gateway issues)
+- CORS errors in browser console
+- Timeout errors (check Lambda timeout settings)
+- 403 errors (permission issues)
+- Inconsistent responses
+
 ## 🔍 Troubleshooting
 
 ### Common Lambda Issues
@@ -304,26 +658,85 @@ This guide will walk you through deploying your React frontend to AWS Amplify an
 ### Common API Gateway Issues
 
 1. **CORS errors**:
-   - Re-enable CORS on all resources
+   - Re-enable CORS on each individual resource (`/health`, `/items`, `/items/{id}`)
+   - Ensure OPTIONS methods are created for each resource
    - Redeploy API after CORS changes
+   - Check that Access-Control-Allow-Methods includes the specific HTTP methods for each resource
 
 2. **404 errors**:
-   - Check resource paths match exactly
-   - Ensure proxy integration is enabled
+   - Verify resource paths match exactly (`/health`, `/items`, `/items/{id}`)
+   - Check that all HTTP methods (GET, POST, PUT, DELETE) are created on appropriate resources
+   - Ensure Lambda proxy integration is enabled for each method
+   - Verify the stage deployment includes all resources
 
 3. **500 errors**:
-   - Check Lambda logs in CloudWatch
-   - Verify Lambda function name in API Gateway
+   - Check Lambda logs in CloudWatch (`/aws/lambda/aws-gateway-backend`)
+   - Verify Lambda function name is correct in each method integration
+   - Check Lambda function permissions (API Gateway invoke permission)
+   - Test Lambda function directly in AWS console
+
+4. **Method not allowed (405) errors**:
+   - Ensure the correct HTTP method is configured on the right resource
+   - For example: PUT and DELETE should be on `/items/{id}`, not `/items`
+   - Check that OPTIONS method exists for CORS preflight
+
+5. **Resource not found errors**:
+   - Verify resource hierarchy: root → /health, root → /items → /{id}
+   - Check that resource paths don't have leading/trailing slashes inconsistencies
+   - Ensure stage deployment includes all new resources
 
 ### Common Amplify Issues
 
 1. **Build failures**:
    - Check build logs in Amplify console
    - Verify package.json has correct scripts
+   - Ensure `amplify.yml` has correct build commands
+   - Check `amplify.yml` syntax (proper YAML indentation)
+   - Verify `baseDirectory` points to correct build output folder (`dist` for Vite, `build` for CRA)
 
-2. **API connection issues**:
+2. **amplify.yml configuration issues**:
+   - **Wrong baseDirectory**: Make sure it matches your build tool:
+     - Vite: `baseDirectory: dist`
+     - Create React App: `baseDirectory: build`
+     - Next.js: `baseDirectory: out` (if using static export)
+   - **Missing dependencies**: Ensure `npm ci` or `npm install` is in preBuild commands
+   - **Build command mismatch**: Verify build command matches package.json scripts
+   - **Cache issues**: Clear cache or modify cache paths if builds are inconsistent
+   - **Environment variables**: Add them to amplify.yml if needed:
+     ```yaml
+     frontend:
+       phases:
+         preBuild:
+           commands:
+             - npm ci
+         build:
+           commands:
+             - npm run build
+       artifacts:
+         baseDirectory: dist
+         files:
+           - '**/*'
+       cache:
+         paths:
+           - node_modules/**/*
+     ```
+
+3. **Backend section in amplify.yml** (if deploying Lambda via Amplify):
+   - Ensure Python dependencies are installed correctly
+   - Verify zip command creates proper structure
+   - Check that `requirements.txt` exists and is valid
+
+4. **API connection issues**:
    - Verify API URL is correct in frontend
-   - Check CORS settings
+   - Check CORS settings on API Gateway
+   - Ensure environment variables are properly set
+   - Test API endpoints independently before frontend integration
+
+5. **Deployment issues**:
+   - **Branch mismatch**: Ensure Amplify is watching the correct branch
+   - **Build timeout**: Increase build timeout in Amplify settings if builds are slow
+   - **Memory issues**: Large builds might need memory optimization
+   - **File size limits**: Check if artifacts exceed Amplify limits
 
 ## 📊 Monitoring and Logs
 
